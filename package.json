@@ -1,0 +1,23 @@
+{
+    "name": "pagerduty-oncall-slack-bot",
+    "version": "1.0.0",
+    "description": "PagerDuty OnCall Slack bot",
+    "main": "index.js",
+    "repository": "https://github.com/section-io/pagerduty-oncall-slack-bot",
+    "scripts": {
+        "test": "jshint *.js && jscs *.js && mocha test --recursive"
+    },
+    "author": "Jason Stangroome",
+    "license": "MIT",
+    "dependencies": {
+        "qs": "^6.2.1",
+        "request": "^2.74.0",
+        "request-promise": "^4.1.1"
+    },
+    "devDependencies": {
+        "chai": "^3.5.0",
+        "jscs": "^3.0.7",
+        "jshint": "^2.9.3",
+        "mocha": "^3.0.2"
+    }
+}
