@@ -15,7 +15,7 @@ describe('commands', function () {
                 response_url: '_RESPONSE_URL_',
             };
 
-            var pagerduty = {
+            var pagerDuty = {
                 getOnCalls: function () {
                     return Promise.resolve([
                         {
@@ -23,7 +23,7 @@ describe('commands', function () {
                             escalationLevel: 2,
                             policyId: '_POLICY_ID_1_',
                             policyName: 'Operations',
-                            policyUrl: '_POLICY_URL_1',
+                            policyUrl: '_POLICY_URL_1_',
                             scheduleName: 'Second Line',
                             scheduleUrl: '_SCHEDULE_URL_2',
                             userName: 'Philip',
@@ -34,7 +34,7 @@ describe('commands', function () {
                             escalationLevel: 2,
                             policyId: '_POLICY_ID_1_',
                             policyName: 'Operations',
-                            policyUrl: '_POLICY_URL_1',
+                            policyUrl: '_POLICY_URL_1_',
                             scheduleName: null,
                             scheduleUrl: null,
                             userName: 'Amy',
@@ -45,7 +45,7 @@ describe('commands', function () {
                             escalationLevel: 1,
                             policyId: '_POLICY_ID_1_',
                             policyName: 'Operations',
-                            policyUrl: '_POLICY_URL_1',
+                            policyUrl: '_POLICY_URL_1_',
                             scheduleName: 'Front Line',
                             scheduleUrl: '_SCHEDULE_URL_1',
                             userName: 'Hubert',
@@ -56,7 +56,7 @@ describe('commands', function () {
                             escalationLevel: 1,
                             policyId: '_POLICY_ID_2_',
                             policyName: 'Customers',
-                            policyUrl: '_POLICY_URL_2',
+                            policyUrl: '_POLICY_URL_2_',
                             scheduleName: 'Front Line',
                             scheduleUrl: '_SCHEDULE_URL_A',
                             userName: 'Hermes',
@@ -70,7 +70,6 @@ describe('commands', function () {
             var slackPromise = new Promise(function (resolve) {
                 slack.respond = function (url, message) {
                     expect(url).to.eq('_RESPONSE_URL_');
-                    console.log(message);
                     expect(message.response_type).to.equal('in_channel');
                     expect(message.text).to.equal('Current PagerDuty on call roster:');
                     expect(message.attachments).ok;
@@ -82,7 +81,7 @@ describe('commands', function () {
                 };
             })
 
-            var commands = new Commands(pagerduty, slack);
+            var commands = new Commands(pagerDuty, slack);
             var commandPromise = commands.processCommand(params)
                 .then(function (message) {
                     expect(message.response_type).equal('in_channel');

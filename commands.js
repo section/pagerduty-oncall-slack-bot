@@ -29,7 +29,6 @@ module.exports = function Commands(pagerduty, slack) {
                     }).join('\n');
                 }
 
-                console.log(byPolicyIdAndLevel);
                 return slack.respond(responseUrl, {
                     response_type: 'in_channel',
                     text: `Current PagerDuty on call roster:`,
@@ -66,7 +65,7 @@ module.exports = function Commands(pagerduty, slack) {
             return processNow(responseUrl);
         }
 
-        //TODO return usage help
+        //TODO return usage help `${params.command} now`
         return Promise.reject("Unknown command");
     };
 

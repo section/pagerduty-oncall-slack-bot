@@ -21,9 +21,12 @@ Follow these steps to configure the slash command in Slack:
 Follow these steps to encrypt your Slack token for use in this function:
 
 1. Create a KMS key - http://docs.aws.amazon.com/kms/latest/developerguide/create-keys.html.
-1. Encrypt the token using the AWS CLI: `$ aws kms encrypt --key-id alias/<KMS key name> --plaintext "<COMMAND_TOKEN>"`
-1. Copy the base-64 encoded, encrypted key (CiphertextBlob) to the kmsEncyptedToken variable in `index.js`.
-1. Give your function's role permission for the kms:Decrypt action.
+1. Give your function's role the permission for the kms:Decrypt action.
+1. Encrypt the Slack token using the AWS CLI: `$ aws kms encrypt --region <region> --key-id alias/<KMS key name> --plaintext "<SLACK_TOKEN>"`
+1. Copy the base-64 encoded, encrypted key (CiphertextBlob) to the kmsEncyptedSlackToken variable in `index.js`.
+1. Obtain a read-only PagerDuty API V2 key - https://support.pagerduty.com/hc/en-us/articles/202829310-Generating-an-API-Key
+1. Encrypt the PagerDuty API key using the AWS CLI: `$ aws kms encrypt --region <region> --key-id alias/<KMS key name> --plaintext "<PAGERDUTY_KEY>"`
+1. Copy the base-64 encoded, encrypted key (CiphertextBlob) to the kmsEncryptedPagerDutyApiToken variable in `index.js`.
 
 Example role permission:
 ```json
@@ -52,8 +55,7 @@ Follow these steps to deploy the AWS Lambda function:
 
 ## Todo
 
-* secure handling of PagerDuty API token
-* icon
+* injecting encrypted Slack and PagerDuty tokens from the environment for dev versus staging
 * time zone support
 * command to list policies
 * allow filtering by policy

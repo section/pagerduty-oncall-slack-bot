@@ -1,46 +1,78 @@
 'use strict';
 
-var AWS;
+var kms;
 var qs = require('qs');
 var Commands = require('./commands');
-var Pagerduty = require('./pagerduty');
+var PagerDuty = require('./pagerduty');
 var slack = require('./slack');
 
 var expectedSlackToken;
-var pagerdutyApiToken = 'w_8PcNuhHa-y3xYdmc1x'; // webdemo
+var commands;
 
-var pagerduty = new Pagerduty(pagerdutyApiToken);
-var commands = new Commands(pagerduty, slack);
+const kmsEncryptedSlackToken = 'AQECAHhUn6wKENLiOqxMUc4/sLItOcFx7tVRblgKtD0D9dIFYgAAAHYwdAYJKoZIhvcNAQcGoGcwZQIBADBgBgkqhkiG9w0BBwEwHgYJYIZIAWUDBAEuMBEEDDqr/ncrV6LlZ4vFogIBEIAzSM1CVwZ0LVuPLrWaLXqNqLoXLokhzNxKhGssXtfxW3xuvoI9F4Hsd3YPDuQReIiQcAm0';
+const kmsEncryptedPagerDutyApiToken = 'AQECAHhUn6wKENLiOqxMUc4/sLItOcFx7tVRblgKtD0D9dIFYgAAAHIwcAYJKoZIhvcNAQcGoGMwYQIBADBcBgkqhkiG9w0BBwEwHgYJYIZIAWUDBAEuMBEEDIOevGLdXkHnRHOo1wIBEIAvWbNsvZy6nVPfu/8L0lMJvonVuUJMg+9mR7ahk6dO7FLguCDOvD1rfLFpQ1zB2rE=';
 
-const kmsEncryptedToken = 'TODO';
+function kmsDecrypt(encryptedBase64String) {
 
-exports.handler = function (event, ignore, callback) {
-    if (expectedSlackToken) {
-        // Container reuse, simply process the event with the key in memory
-        processEvent(event, callback);
-    } else if (kmsEncryptedToken && kmsEncryptedToken !== "<kmsEncryptedToken>") {
-        var encryptedBuf = new Buffer(kmsEncryptedToken, 'base64');
-        var cipherText = {CiphertextBlob: encryptedBuf};
-
-        if (!AWS) {
-            try {
-                AWS = require('aws-sdk');
-            } catch (err) {
-                return callback(err);
-            }
+    if (!kms) {
+        try {
+            var AWS = require('aws-sdk');
+            kms = new AWS.KMS();
+        } catch (err) {
+            return Promise.reject(err);
         }
-        var kms = new AWS.KMS();
+    }
+
+    var encryptedBuffer = new Buffer(encryptedBase64String, 'base64');
+    var cipherText = { CiphertextBlob: encryptedBuffer };
+
+    return new Promise(function (resolve, reject) {
         kms.decrypt(cipherText, function (err, data) {
             if (err) {
-                return callback(new Error('Decrypt error:' + err));
+                return reject(new Error('Decrypt error: ' + err));
             } else {
-                expectedSlackToken = data.Plaintext.toString('ascii');
-                return processEvent(event, callback);
+                var decryptedString = data.Plaintext.toString('ascii');
+                return resolve(decryptedString);
             }
         });
-    } else {
-        return callback(new Error('Token has not been set.'));
+    });
+}
+
+exports.handler = function (event, ignore, callback) {
+    if (expectedSlackToken && commands) {
+        // Container reuse, simply process the event with the key in memory
+        return processEvent(event, callback);
     }
+
+    var promises = [Promise.resolve()];
+
+    if (!expectedSlackToken) {
+        promises.push(
+            kmsDecrypt(kmsEncryptedSlackToken)
+                .then(function (result) {
+                    expectedSlackToken = result;
+                })
+        );
+    }
+
+    if (!commands) {
+        promises.push(
+            kmsDecrypt(kmsEncryptedPagerDutyApiToken)
+                .then(function (pagerDutyApiToken) {
+                    var pagerDuty = new PagerDuty(pagerDutyApiToken);
+                    commands = new Commands(pagerDuty, slack);
+                })
+        );
+    }
+
+    Promise.all(promises)
+        .then(function () {
+            return processEvent(event, callback);
+        })
+        .catch(function (err) {
+            return callback(err);
+        });
+
 };
 
 function processEvent(event, callback) {
