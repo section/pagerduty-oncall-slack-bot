@@ -84,7 +84,8 @@ describe('commands', function () {
             var commands;
 
             var recurseFunction = function (commandName, commandArgument) {
-                return commands[commandName](commandArgument);
+                commands[commandName](commandArgument);
+                return Promise.resolve();
             };
 
             commands = new Commands(pagerDuty, slack, recurseFunction);

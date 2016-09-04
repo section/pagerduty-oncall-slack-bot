@@ -73,8 +73,10 @@ module.exports = function Commands(pagerduty, slack, recurseFunction) {
             return processNow(responseUrl);
         }
 
-        //TODO return usage help `${params.command} now`
-        return Promise.reject("Unknown command");
+        return Promise.resolve({
+            response_type: 'ephemeral',
+            text: `Usage: \`${params.command} now\``,
+        });
     };
 
 };
