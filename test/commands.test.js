@@ -81,7 +81,13 @@ describe('commands', function () {
                 };
             })
 
-            var commands = new Commands(pagerDuty, slack);
+            var commands;
+
+            var recurseFunction = function (commandName, commandArgument) {
+                return commands[commandName](commandArgument);
+            };
+
+            commands = new Commands(pagerDuty, slack, recurseFunction);
             var commandPromise = commands.processCommand(params)
                 .then(function (message) {
                     expect(message.response_type).equal('in_channel');

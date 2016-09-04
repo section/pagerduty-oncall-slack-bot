@@ -1,8 +1,8 @@
 'use strict';
 
-module.exports = function Commands(pagerduty, slack) {
+module.exports = function Commands(pagerduty, slack, recurseFunction) {
 
-    function processNow(responseUrl) {
+    this.delayedNowResponse = function delayedNowResponse(commandArgument) {
         const MAX_ESCALATION_LEVEL = 2;
         pagerduty.getOnCalls()
             .then(function (onCalls) {
@@ -29,7 +29,7 @@ module.exports = function Commands(pagerduty, slack) {
                     }).join('\n');
                 }
 
-                return slack.respond(responseUrl, {
+                return slack.respond(commandArgument.responseUrl, {
                     response_type: 'in_channel',
                     text: `Current PagerDuty on call roster:`,
                     attachments: Object.keys(byPolicyIdAndLevel).sort().map(function (key) {
@@ -48,7 +48,15 @@ module.exports = function Commands(pagerduty, slack) {
             .catch(function (err) {
                 console.error(err);
             });
+    };
 
+    function processNow(responseUrl) {
+
+        recurseFunction('delayedNowResponse', {
+            responseUrl: responseUrl,
+        }).catch(function (err) {
+            console.error(err);
+        });
 
         return Promise.resolve({
             response_type: 'in_channel',

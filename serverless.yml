@@ -16,6 +16,14 @@ service: pagerduty-oncall-slack-bot
 provider:
   name: aws
   runtime: nodejs4.3
+  iamRoleStatements:
+    - Effect: "Allow"
+      Action:
+        - "lambda:invokeFunction"
+      Resource:
+        Fn::GetAtt:
+          - "slack"
+          - "Arn"
 
 # you can overwrite defaults here
 #defaults:

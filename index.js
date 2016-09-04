@@ -38,7 +38,37 @@ function kmsDecrypt(encryptedBase64String) {
     });
 }
 
-exports.handler = function (event, ignore, callback) {
+function createRecurseFunction(lambdaContext) {
+    return function recurse(commandName, commandArgument) {
+        var AWS = require('aws-sdk');
+        var lambda = new AWS.Lambda();
+
+        var payload = {
+            hasRecursed: true,
+            commandName: commandName,
+            commandArgument: commandArgument,
+        };
+
+        return new Promise(function (resolve, reject) {
+
+            lambda.invoke({
+                FunctionName: lambdaContext.functionName,
+                Qualifier: lambdaContext.functionVersion,
+                InvocationType: 'Event',
+                Payload: JSON.stringify(payload),
+            }, function (err, data) {
+                if (err) {
+                    return reject(err);
+                }
+                return resolve(data);
+            });
+
+        });
+
+    };
+}
+
+exports.handler = function (event, context, callback) {
     if (expectedSlackToken && commands) {
         // Container reuse, simply process the event with the key in memory
         return processEvent(event, callback);
@@ -59,8 +89,9 @@ exports.handler = function (event, ignore, callback) {
         promises.push(
             kmsDecrypt(kmsEncryptedPagerDutyApiToken)
                 .then(function (pagerDutyApiToken) {
+                    var recurseFunction = createRecurseFunction(context);
                     var pagerDuty = new PagerDuty(pagerDutyApiToken);
-                    commands = new Commands(pagerDuty, slack);
+                    commands = new Commands(pagerDuty, slack, recurseFunction);
                 })
         );
     }
@@ -76,6 +107,15 @@ exports.handler = function (event, ignore, callback) {
 };
 
 function processEvent(event, callback) {
+
+    if (event.hasRecursed && event.commandName && event.commandArgument) {
+        if (!commands.hasOwnProperty(event.commandName)) {
+            return callback(new Error(`Invalid command name "${event.commandName}".`));
+        }
+        commands[event.commandName](event.commandArgument);
+        return callback();
+    }
+
     var body = event.body;
     var params = qs.parse(body);
     var requestToken = params.token;
