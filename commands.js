@@ -50,6 +50,30 @@ module.exports = function Commands(pagerduty, slack, recurseFunction) {
             });
     };
 
+    this.delayedPoliciesResponse = function delayedPoliciesResponse(commandArgument) {
+        pagerduty.getEscalationPolicies()
+            .then(function (policies) {
+
+                return slack.respond(commandArgument.responseUrl, {
+                    response_type: 'ephemeral',
+                    text: 'PagerDuty escalation policies:',
+                    attachments: policies.map(function (policy) {
+                        var mrkdwnIn = !policy.policyDescription ? ['text'] : undefined;
+                        return {
+                            title: policy.policyName,
+                            title_link: policy.policyUrl,
+                            text: policy.policyDescription || '_no description_',
+                            mrkdwn_in: mrkdwnIn,
+                        };
+                    }),
+                });
+
+            })
+            .catch(function (err) {
+                console.error(err);
+            });
+    };
+
     function processNow(responseUrl) {
 
         recurseFunction('delayedNowResponse', {
@@ -63,19 +87,44 @@ module.exports = function Commands(pagerduty, slack, recurseFunction) {
         });
     }
 
+    function processPolicies(responseUrl) {
+
+        recurseFunction('delayedPoliciesResponse', {
+            responseUrl: responseUrl,
+        }).catch(function (err) {
+            console.error(err);
+        });
+
+        return Promise.resolve({
+            response_type: 'ephemeral',
+        });
+
+    }
+
     this.processCommand = function processCommand(params) {
 
         var commandText = params.text;
         var responseUrl = params.response_url;
+        var match;
 
-        var match = /^now *$/.exec(commandText);
+        match = /^now *$/.exec(commandText);
         if (match) {
+            // TODO filter by policy
             return processNow(responseUrl);
+        }
+
+        match = /^policies *$/.exec(commandText);
+        if (match) {
+            return processPolicies(responseUrl);
         }
 
         return Promise.resolve({
             response_type: 'ephemeral',
-            text: `Usage: \`${params.command} now\``,
+            text: [
+                'Usage:',
+                `• \`${params.command} now\` - Post the current on call roster to this channel.`,
+                `• \`${params.command} policies\` - Privately list the escalation policies.`,
+            ].join('\n'),
         });
     };
 

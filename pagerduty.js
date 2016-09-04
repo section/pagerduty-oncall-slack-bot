@@ -4,6 +4,42 @@ var rp = require('request-promise');
 
 function PagerDuty(token) {
 
+    this.getEscalationPolicies = function () {
+
+        var options = {
+            url: 'https://api.pagerduty.com/escalation_policies',
+            qs: {
+                sort_by: 'name:asc',
+            },
+            headers: {
+                Authorization: `Token token=${token}`,
+                Accept: 'application/vnd.pagerduty+json;version=2',
+            },
+            json: true,
+        };
+
+        var allResults = [];
+        function handleResponse(json) {
+            var pageResults = json.escalation_policies.map(policy => {
+                return {
+                    policyId: policy.id,
+                    policyName: policy.name,
+                    policyDescription: policy.description,
+                    policyUrl: policy.html_url,
+                };
+            });
+            allResults = allResults.concat(pageResults);
+            if (json.more) {
+                options.qs.offset = json.offset + json.limit;
+                return rp(options).then(handleResponse);
+            }
+            return allResults;
+        }
+
+        return rp(options).then(handleResponse);
+
+    };
+
     this.getOnCalls = function () {
 
         var options = {

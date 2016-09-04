@@ -25,4 +25,23 @@ describe('pagerduty', function () {
 
     });
 
+    describe('getEscalationPolicies', function () {
+
+        it('should return policies', function () {
+
+            var pagerDuty = new PagerDuty(PAGERDUTY_WEBDEMO_TOKEN);
+
+            var promise = pagerDuty.getEscalationPolicies();
+            return promise.then(function (policies) {
+                expect(policies.length).at.least(1);
+                expect(policies[0].policyId).ok;
+                expect(policies[0].policyName).ok;
+                expect(policies[0].policyUrl).ok;
+                expect(policies[0]).property('policyDescription');
+            });
+
+        });
+
+    });
+
 });
