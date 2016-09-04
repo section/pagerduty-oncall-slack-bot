@@ -97,6 +97,7 @@ module.exports = function Commands(pagerduty, slack, recurseFunction) {
 
         return Promise.resolve({
             response_type: 'ephemeral',
+            text: "Retrieving escalation policies...",
         });
 
     }

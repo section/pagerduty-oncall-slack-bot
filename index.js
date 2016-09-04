@@ -7,10 +7,19 @@ var PagerDuty = require('./pagerduty');
 var slack = require('./slack');
 
 var expectedSlackToken;
+var expectedStage;
 var commands;
 
-const kmsEncryptedSlackToken = 'AQECAHhUn6wKENLiOqxMUc4/sLItOcFx7tVRblgKtD0D9dIFYgAAAHYwdAYJKoZIhvcNAQcGoGcwZQIBADBgBgkqhkiG9w0BBwEwHgYJYIZIAWUDBAEuMBEEDDqr/ncrV6LlZ4vFogIBEIAzSM1CVwZ0LVuPLrWaLXqNqLoXLokhzNxKhGssXtfxW3xuvoI9F4Hsd3YPDuQReIiQcAm0';
-const kmsEncryptedPagerDutyApiToken = 'AQECAHhUn6wKENLiOqxMUc4/sLItOcFx7tVRblgKtD0D9dIFYgAAAHIwcAYJKoZIhvcNAQcGoGMwYQIBADBcBgkqhkiG9w0BBwEwHgYJYIZIAWUDBAEuMBEEDIOevGLdXkHnRHOo1wIBEIAvWbNsvZy6nVPfu/8L0lMJvonVuUJMg+9mR7ahk6dO7FLguCDOvD1rfLFpQ1zB2rE=';
+const configurations = {
+    dev: {
+        kmsEncryptedSlackToken: 'AQECAHhUn6wKENLiOqxMUc4/sLItOcFx7tVRblgKtD0D9dIFYgAAAHYwdAYJKoZIhvcNAQcGoGcwZQIBADBgBgkqhkiG9w0BBwEwHgYJYIZIAWUDBAEuMBEEDFD58+o5yu4L04lu5wIBEIAzOqLZJKM0ZfU44hgPxf4350eflkysYArUWEInVzLXSpvZw0QFGpvbshlnT3shlEBhkhJb',
+        kmsEncryptedPagerDutyApiToken: 'AQECAHhUn6wKENLiOqxMUc4/sLItOcFx7tVRblgKtD0D9dIFYgAAAHIwcAYJKoZIhvcNAQcGoGMwYQIBADBcBgkqhkiG9w0BBwEwHgYJYIZIAWUDBAEuMBEEDMFCTzw6XUbb/kSldwIBEIAv+dvB02nXz+HUZPz9l63yvLWf2LEUXWLBrRUOND2NFnIVqvhXUzWH+4XdAYW+Seg=',
+    },
+    prod: {
+        kmsEncryptedSlackToken: 'AQECAHhUn6wKENLiOqxMUc4/sLItOcFx7tVRblgKtD0D9dIFYgAAAHYwdAYJKoZIhvcNAQcGoGcwZQIBADBgBgkqhkiG9w0BBwEwHgYJYIZIAWUDBAEuMBEEDDqr/ncrV6LlZ4vFogIBEIAzSM1CVwZ0LVuPLrWaLXqNqLoXLokhzNxKhGssXtfxW3xuvoI9F4Hsd3YPDuQReIiQcAm0',
+        kmsEncryptedPagerDutyApiToken: 'AQECAHhUn6wKENLiOqxMUc4/sLItOcFx7tVRblgKtD0D9dIFYgAAAHIwcAYJKoZIhvcNAQcGoGMwYQIBADBcBgkqhkiG9w0BBwEwHgYJYIZIAWUDBAEuMBEEDIOevGLdXkHnRHOo1wIBEIAvWbNsvZy6nVPfu/8L0lMJvonVuUJMg+9mR7ahk6dO7FLguCDOvD1rfLFpQ1zB2rE=',
+    },
+};
 
 function kmsDecrypt(encryptedBase64String) {
 
@@ -38,12 +47,13 @@ function kmsDecrypt(encryptedBase64String) {
     });
 }
 
-function createRecurseFunction(lambdaContext) {
+function createRecurseFunction(lambdaContext, event) {
     return function recurse(commandName, commandArgument) {
         var AWS = require('aws-sdk');
         var lambda = new AWS.Lambda();
 
         var payload = {
+            stage: event.stage,
             hasRecursed: true,
             commandName: commandName,
             commandArgument: commandArgument,
@@ -69,16 +79,22 @@ function createRecurseFunction(lambdaContext) {
 }
 
 exports.handler = function (event, context, callback) {
-    if (expectedSlackToken && commands) {
+    if (expectedSlackToken && commands && expectedStage === event.stage) {
         // Container reuse, simply process the event with the key in memory
         return processEvent(event, callback);
     }
+
+    if (!event.stage || !configurations.hasOwnProperty(event.stage)) {
+        return callback(new Error(`Invalid stage "${event.stage}".`));
+    }
+    expectedStage = event.stage;
+    var config = configurations[event.stage];
 
     var promises = [Promise.resolve()];
 
     if (!expectedSlackToken) {
         promises.push(
-            kmsDecrypt(kmsEncryptedSlackToken)
+            kmsDecrypt(config.kmsEncryptedSlackToken)
                 .then(function (result) {
                     expectedSlackToken = result;
                 })
@@ -87,9 +103,9 @@ exports.handler = function (event, context, callback) {
 
     if (!commands) {
         promises.push(
-            kmsDecrypt(kmsEncryptedPagerDutyApiToken)
+            kmsDecrypt(config.kmsEncryptedPagerDutyApiToken)
                 .then(function (pagerDutyApiToken) {
-                    var recurseFunction = createRecurseFunction(context);
+                    var recurseFunction = createRecurseFunction(context, event);
                     var pagerDuty = new PagerDuty(pagerDutyApiToken);
                     commands = new Commands(pagerDuty, slack, recurseFunction);
                 })

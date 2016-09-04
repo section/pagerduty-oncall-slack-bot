@@ -67,7 +67,7 @@ resources:
       Properties:
         Integration:
           RequestTemplates:
-            application/x-www-form-urlencoded: "{ \"body\": $input.json(\"$\") }"
+            application/x-www-form-urlencoded: "{ \"body\": $input.json(\"$\"), \"stage\": \"$context.stage\" }"
 #    NewResource:
 #      Type: AWS::S3::Bucket
 #      Properties:
