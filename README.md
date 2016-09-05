@@ -58,7 +58,6 @@ Follow these steps to deploy the AWS Lambda function:
 
 ## Todo
 
-* time zone support
+* command to list on call roster for a time other than now
 * allow filtering by policy
 * allow filtering by escalation level
-* command to list on call for a time other than now (needs time zone support)
