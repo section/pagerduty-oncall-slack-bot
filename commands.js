@@ -2,6 +2,8 @@
 
 module.exports = function Commands(pagerduty, slack, recurseFunction) {
 
+    const MAX_SLACK_ATTACHMENTS = 20;
+
     this.delayedNowResponse = function delayedNowResponse(commandArgument) {
         const MAX_ESCALATION_LEVEL = 2;
         pagerduty.getOnCalls()
@@ -29,19 +31,35 @@ module.exports = function Commands(pagerduty, slack, recurseFunction) {
                     }).join('\n');
                 }
 
+                var keys = Object.keys(byPolicyIdAndLevel).sort();
+                var truncatedPolicyLevelCount = 0;
+                if (keys.length > MAX_SLACK_ATTACHMENTS) {
+                    truncatedPolicyLevelCount = keys.length - MAX_SLACK_ATTACHMENTS - 1;
+                    keys.slice(0, MAX_SLACK_ATTACHMENTS - 1);
+                }
+
+                var attachments = keys.map(function (key) {
+                    // https://api.slack.com/docs/message-attachments
+                    var entries = byPolicyIdAndLevel[key];
+                    var first = entries[0];
+                    return {
+                        title: `${first.policyName} - Level ${first.escalationLevel}`,
+                        title_link: first.policyUrl,
+                        text: formatOnCalls(entries),
+                    };
+                });
+
+                if (truncatedPolicyLevelCount) {
+                    attachments.push({
+                        title: 'More...',
+                        text: `${truncatedPolicyLevelCount} more policy-level combinations were omitted.`
+                    });
+                }
+
                 return slack.respond(commandArgument.responseUrl, {
                     response_type: 'in_channel',
                     text: `Current PagerDuty on call roster:`,
-                    attachments: Object.keys(byPolicyIdAndLevel).sort().map(function (key) {
-                        // https://api.slack.com/docs/message-attachments
-                        var entries = byPolicyIdAndLevel[key];
-                        var first = entries[0];
-                        return {
-                            title: `${first.policyName} - Level ${first.escalationLevel}`,
-                            title_link: first.policyUrl,
-                            text: formatOnCalls(entries),
-                        };
-                    }),
+                    attachments: attachments,
                 });
 
             })
@@ -53,6 +71,15 @@ module.exports = function Commands(pagerduty, slack, recurseFunction) {
     this.delayedPoliciesResponse = function delayedPoliciesResponse(commandArgument) {
         pagerduty.getEscalationPolicies()
             .then(function (policies) {
+
+                if (policies.length > MAX_SLACK_ATTACHMENTS) {
+                    var truncatedPolicyCount = policies.length - MAX_SLACK_ATTACHMENTS - 1;
+                    policies = policies.slice(0, MAX_SLACK_ATTACHMENTS - 1);
+                    policies.push({
+                        policyName: 'More...',
+                        policyDescription: `${truncatedPolicyCount} more escalation policies were omitted.`,
+                    });
+                }
 
                 return slack.respond(commandArgument.responseUrl, {
                     response_type: 'ephemeral',
