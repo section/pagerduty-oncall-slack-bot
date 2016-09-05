@@ -19,6 +19,7 @@ const configurations = {
     prod: {
         kmsEncryptedSlackToken: 'AQECAHhUn6wKENLiOqxMUc4/sLItOcFx7tVRblgKtD0D9dIFYgAAAHYwdAYJKoZIhvcNAQcGoGcwZQIBADBgBgkqhkiG9w0BBwEwHgYJYIZIAWUDBAEuMBEEDDqr/ncrV6LlZ4vFogIBEIAzSM1CVwZ0LVuPLrWaLXqNqLoXLokhzNxKhGssXtfxW3xuvoI9F4Hsd3YPDuQReIiQcAm0',
         kmsEncryptedPagerDutyApiToken: 'AQECAHhUn6wKENLiOqxMUc4/sLItOcFx7tVRblgKtD0D9dIFYgAAAHIwcAYJKoZIhvcNAQcGoGMwYQIBADBcBgkqhkiG9w0BBwEwHgYJYIZIAWUDBAEuMBEEDIOevGLdXkHnRHOo1wIBEIAvWbNsvZy6nVPfu/8L0lMJvonVuUJMg+9mR7ahk6dO7FLguCDOvD1rfLFpQ1zB2rE=',
+        kmsEncryptedSlackApiToken: 'AQECAHhUn6wKENLiOqxMUc4/sLItOcFx7tVRblgKtD0D9dIFYgAAAJEwgY4GCSqGSIb3DQEHBqCBgDB+AgEAMHkGCSqGSIb3DQEHATAeBglghkgBZQMEAS4wEQQMFNxOnDzoXpTIlnVfAgEQgExGWdLo1NSW+2QRG2kTD38XLygw22wskIEe8hNiEWn4ibD83lcKxvP7KvRluI2vLhBRRlTCMo4skiFIGUSI9jETC55stGcbnBKWTpvJ',
     },
 };
 
@@ -104,11 +105,16 @@ exports.handler = function (event, context, callback) {
 
     if (!commands) {
         promises.push(
-            kmsDecrypt(config.kmsEncryptedPagerDutyApiToken)
-                .then(function (pagerDutyApiToken) {
+            Promise.all([
+                kmsDecrypt(config.kmsEncryptedPagerDutyApiToken),
+                kmsDecrypt(config.kmsEncryptedSlackApiToken),
+            ])
+                .then(function (results) {
+                    var pagerDutyApiToken = results[0];
+                    var slackApiToken = results[1];
                     var recurseFunction = createRecurseFunction(context, event);
                     var pagerDuty = new PagerDuty(pagerDutyApiToken);
-                    var slack = new Slack();
+                    var slack = new Slack(slackApiToken);
                     commands = new Commands(pagerDuty, slack, recurseFunction);
                 })
         );
