@@ -27,6 +27,9 @@ Follow these steps to encrypt your Slack token for use in this function:
 1. Obtain a read-only PagerDuty API V2 key - https://support.pagerduty.com/hc/en-us/articles/202829310-Generating-an-API-Key
 1. Encrypt the PagerDuty API key using the AWS CLI: `$ aws kms encrypt --region <region> --key-id alias/<KMS key name> --plaintext "<PAGERDUTY_KEY>"`
 1. Copy the base-64 encoded, encrypted key (CiphertextBlob) to the relevate `kmsEncryptedPagerDutyApiToken` configuration key value in `index.js`.
+1. Obtain a Slack API token for testing and development: https://api.slack.com/docs/oauth-test-tokens
+1. Encrypt the Slack API token using the AWS CLI: `$ aws kms encrypt --region <region> --key-id alias/<KMS key name> --plaintext "<API_TOKEN>"`
+1. Copy the base-64 encoded, encrypted token (CiphertextBlob) to the relevate `kmsEncryptedSlackApiToken` configuration key value in `index.js`.
 
 Example role permission:
 ```json

@@ -4,7 +4,7 @@ var kms;
 var qs = require('qs');
 var Commands = require('./commands');
 var PagerDuty = require('./pagerduty');
-var slack = require('./slack');
+var Slack = require('./slack');
 
 var expectedSlackToken;
 var expectedStage;
@@ -14,6 +14,7 @@ const configurations = {
     dev: {
         kmsEncryptedSlackToken: 'AQECAHhUn6wKENLiOqxMUc4/sLItOcFx7tVRblgKtD0D9dIFYgAAAHYwdAYJKoZIhvcNAQcGoGcwZQIBADBgBgkqhkiG9w0BBwEwHgYJYIZIAWUDBAEuMBEEDFD58+o5yu4L04lu5wIBEIAzOqLZJKM0ZfU44hgPxf4350eflkysYArUWEInVzLXSpvZw0QFGpvbshlnT3shlEBhkhJb',
         kmsEncryptedPagerDutyApiToken: 'AQECAHhUn6wKENLiOqxMUc4/sLItOcFx7tVRblgKtD0D9dIFYgAAAHIwcAYJKoZIhvcNAQcGoGMwYQIBADBcBgkqhkiG9w0BBwEwHgYJYIZIAWUDBAEuMBEEDMFCTzw6XUbb/kSldwIBEIAv+dvB02nXz+HUZPz9l63yvLWf2LEUXWLBrRUOND2NFnIVqvhXUzWH+4XdAYW+Seg=',
+        kmsEncryptedSlackApiToken: 'AQECAHhUn6wKENLiOqxMUc4/sLItOcFx7tVRblgKtD0D9dIFYgAAAJQwgZEGCSqGSIb3DQEHBqCBgzCBgAIBADB7BgkqhkiG9w0BBwEwHgYJYIZIAWUDBAEuMBEEDLmxSsdkTpIMZK7GXQIBEIBOFUrRe5LEj+XplKEoMl7jwFCjNmigKxCmgTikvPcxTF55/1yR2RLbL2igEKKJiGrVOMJMZUSXuwGFvh/rzzOMna5G3g4bV9BhD9tLlvdr',
     },
     prod: {
         kmsEncryptedSlackToken: 'AQECAHhUn6wKENLiOqxMUc4/sLItOcFx7tVRblgKtD0D9dIFYgAAAHYwdAYJKoZIhvcNAQcGoGcwZQIBADBgBgkqhkiG9w0BBwEwHgYJYIZIAWUDBAEuMBEEDDqr/ncrV6LlZ4vFogIBEIAzSM1CVwZ0LVuPLrWaLXqNqLoXLokhzNxKhGssXtfxW3xuvoI9F4Hsd3YPDuQReIiQcAm0',
@@ -107,6 +108,7 @@ exports.handler = function (event, context, callback) {
                 .then(function (pagerDutyApiToken) {
                     var recurseFunction = createRecurseFunction(context, event);
                     var pagerDuty = new PagerDuty(pagerDutyApiToken);
+                    var slack = new Slack();
                     commands = new Commands(pagerDuty, slack, recurseFunction);
                 })
         );

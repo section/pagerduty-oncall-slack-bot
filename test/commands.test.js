@@ -66,17 +66,27 @@ describe('commands', function () {
                 },
             };
 
-            var slack = {};
+            var slack = {
+                getUserInfo: function () {
+                    return Promise.resolve({
+                        realName: 'Hubert Farnsworth',
+                        tz: 'America/New_York',
+                    });
+                },
+            };
+
             var slackPromise = new Promise(function (resolve) {
                 slack.respond = function (url, message) {
                     expect(url).to.eq('_RESPONSE_URL_');
                     expect(message.response_type).to.equal('in_channel');
-                    expect(message.text).to.equal('Current PagerDuty on call roster:');
+                    expect(message.text).to.contain('Current PagerDuty on call roster');
+                    expect(message.text).to.contain('Hubert Farnsworth');
+                    expect(message.text).to.contain('-04:00');
                     expect(message.attachments).ok;
                     expect(message.attachments.length).to.equal(3);
                     expect(message.attachments[0].title).to.equal('Operations - Level 1');
                     expect(message.attachments[0].title_link).to.equal('_POLICY_URL_1_');
-                    expect(message.attachments[0].text).to.equal('• <_USER_URL_3|Hubert> - until 2016-08-26T17:00:00Z (<_SCHEDULE_URL_1|Front Line>)');
+                    expect(message.attachments[0].text).to.equal('• <_USER_URL_3|Hubert> - until 1:00pm Fri 26th Aug (<_SCHEDULE_URL_1|Front Line>)');
                     return resolve();
                 };
             })

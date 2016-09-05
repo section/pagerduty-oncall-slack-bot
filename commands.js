@@ -1,13 +1,24 @@
 'use strict';
 
+var moment = require('moment-timezone');
+
 module.exports = function Commands(pagerduty, slack, recurseFunction) {
 
     const MAX_SLACK_ATTACHMENTS = 20;
 
     this.delayedNowResponse = function delayedNowResponse(commandArgument) {
         const MAX_ESCALATION_LEVEL = 2;
-        pagerduty.getOnCalls()
-            .then(function (onCalls) {
+
+        var promises = [
+            slack.getUserInfo(commandArgument.userId),
+            pagerduty.getOnCalls(),
+        ];
+
+        Promise.all(promises)
+            .then(function (results) {
+                var user = results[0];
+                var onCalls = results[1];
+
                 var byPolicyIdAndLevel = {};
                 onCalls
                     .filter(o => o.escalationLevel <= MAX_ESCALATION_LEVEL)
@@ -25,7 +36,8 @@ module.exports = function Commands(pagerduty, slack, recurseFunction) {
                     return onCalls.map(function (onCall) {
                         var until = 'indefinitely';
                         if (onCall.end && onCall.scheduleName && onCall.scheduleUrl) {
-                            until = `until ${onCall.end} (<${onCall.scheduleUrl}|${onCall.scheduleName}>)`;
+                            var end = moment(onCall.end).tz(user.tz).format('h:mma ddd Do MMM');
+                            until = `until ${end} (<${onCall.scheduleUrl}|${onCall.scheduleName}>)`;
                         }
                         return `• <${onCall.userUrl}|${onCall.userName}> - ${until}`;
                     }).join('\n');
@@ -56,9 +68,10 @@ module.exports = function Commands(pagerduty, slack, recurseFunction) {
                     });
                 }
 
+                var timezone = moment.tz(user.tz).format('Z');
                 return slack.respond(commandArgument.responseUrl, {
                     response_type: 'in_channel',
-                    text: `Current PagerDuty on call roster:`,
+                    text: `Current PagerDuty on call roster, using ${user.realName}'s time zone (${timezone}):`,
                     attachments: attachments,
                 });
 
@@ -101,10 +114,11 @@ module.exports = function Commands(pagerduty, slack, recurseFunction) {
             });
     };
 
-    function processNow(responseUrl) {
+    function processNow(responseUrl, userId) {
 
         recurseFunction('delayedNowResponse', {
             responseUrl: responseUrl,
+            userId: userId,
         }).catch(function (err) {
             console.error(err);
         });
@@ -133,12 +147,13 @@ module.exports = function Commands(pagerduty, slack, recurseFunction) {
 
         var commandText = params.text;
         var responseUrl = params.response_url;
+        var userId = params.user_id;
         var match;
 
         match = /^now *$/.exec(commandText);
         if (match) {
             // TODO filter by policy
-            return processNow(responseUrl);
+            return processNow(responseUrl, userId);
         }
 
         match = /^policies *$/.exec(commandText);

@@ -10,6 +10,8 @@
     "author": "Jason Stangroome",
     "license": "MIT",
     "dependencies": {
+        "moment": "^2.14.1",
+        "moment-timezone": "^0.5.5",
         "qs": "^6.2.1",
         "request": "^2.74.0",
         "request-promise": "^4.1.1"
