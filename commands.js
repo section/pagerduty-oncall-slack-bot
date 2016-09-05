@@ -71,7 +71,7 @@ module.exports = function Commands(pagerduty, slack, recurseFunction) {
                 var timezone = moment.tz(user.tz).format('Z');
                 return slack.respond(commandArgument.responseUrl, {
                     response_type: 'in_channel',
-                    text: `Current PagerDuty on call roster, using ${user.realName}'s time zone (${timezone}):`,
+                    text: `Current PagerDuty on call roster, using <@${user.id}>'s time zone (${timezone}):`,
                     attachments: attachments,
                 });
 
