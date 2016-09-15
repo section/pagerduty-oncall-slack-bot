@@ -23,6 +23,20 @@ describe('pagerduty', function () {
 
         });
 
+        it('should query different times', function () {
+
+            var pagerDuty = new PagerDuty(PAGERDUTY_WEBDEMO_TOKEN);
+
+            var testDate = new Date();
+            testDate.setDate(testDate.getDate() + 3);
+            var promise = pagerDuty.getOnCalls(testDate.toISOString());
+            return promise.then(function (onCalls) {
+                expect(onCalls.length).at.least(1);
+                expect(onCalls[0].policyId).ok;
+            });
+
+        });
+
     });
 
     describe('getEscalationPolicies', function () {

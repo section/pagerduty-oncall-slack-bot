@@ -58,6 +58,5 @@ Follow these steps to deploy the AWS Lambda function:
 
 ## Todo
 
-* command to list on call roster for a time other than now
 * allow filtering by policy
 * allow filtering by escalation level

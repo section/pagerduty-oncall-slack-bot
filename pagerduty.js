@@ -40,7 +40,7 @@ function PagerDuty(token) {
 
     };
 
-    this.getOnCalls = function () {
+    this.getOnCalls = function (sinceISO8601) {
 
         var options = {
             url: 'https://api.pagerduty.com/oncalls',
@@ -55,6 +55,11 @@ function PagerDuty(token) {
             },
             json: true,
         };
+
+        if (sinceISO8601) {
+            options.qs.since = sinceISO8601;
+            options.qs.until = sinceISO8601;
+        }
 
         var allResults = [];
         function handleResponse(json) {
